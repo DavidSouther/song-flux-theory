@@ -46,25 +46,27 @@
 
 <p>The prevalent MVC architecture diagram component has three objects and six interactions (Fig 1), but as applications scale, the clean linear data flow grows and becomes cluttered (Fig 2).</p>
 
-<p><img src="https://docs.google.com/drawings/d/1z90YL-L6U9NYFeHWe9xlCQE6YDU8e2A6gEqZk7TXbDs/edit" alt="MVC Triangle">
+<p><img src="images/mvc_triangle.svg" alt="MVC Triangle">
 Fig 1: Typical “MVC” triangle. Models notify Controllers and Views with Observable events. Controllers change views and states as desired. Views can ask for state at any time, and push user actions to controllers. Angular simplifies and obfuscates with two-way binding.</p>
 
-<p><img src="https://docs.google.com/drawings/d/1kd7rKLhPmDlk7e1Y-KCb-QntJHtmMlspETud-tefFWQ/edit" alt="MVC Matured">
+<p><img src="images/mature_angular_mvc.svg" alt="MVC Matured">
 Fig 2: Typical “Data Binding” mishmash in MVVM, arising from loose application architecture and planning. Notice every arrow is two-way.</p>
 
 <p>Flux eschews the free-for-all two-way data binding in favor of certain well-defined push mechanisms. In flux, there are four parts to the pattern, each with one incoming and one outgoing data path, for a total of four interactions (fig 3). The pieces are Actions, objects that encapsulate a requested change in state; the Dispatcher, a utility that manages the data flow; Stores, containers and single sources of truth for application data; and Components, reusable and composable UI elements that make the view. In a complex application, the data flow goes from a graph with high cut size  to a graph with a very low cut size (fig 4) - any piece can be replaced with a few number of refactorings.</p>
 
-<p><img src="https://docs.google.com/drawings/d/1U9gS0myUN1SROWRbzWBIwGjrEtPe7D3mDQN96LZP00I/edit" alt="Basic Flux">
+<p><img src="images/basic_flux.svg" alt="Basic Flux">
 Fig 3: Basic Flux data flow. Dispatchers call Stores with Actions. Components observe stores, and create Actions. Data flows one direction, and one arrow may be active at a time (no new actions while mutating).</p>
 
-<p><img src="https://docs.google.com/drawings/d/1juuPL4vN7hyxrFYRblHC8mRuP9FyU2-XSe0-MvGj1Z8/edit" alt="Flux Matured">
+<p><img src="images/flux_large_app.svg" alt="Flux Matured">
 Fig 4: Flux data flow in a complex application. (The dispatcher is a singleton.)</p>
 
 <p>Further, flux enforces low cyclomatic complexity on the data flow graph: when the Dispatcher component handles an Action, the dispatcher guarantees no other Actions are simultaneously being dispatched. This eliminates a "mutation cascade", where a user action triggers some state to mutate, that itself causes some other state to mutate. These cascades can be very difficult to reason about both as a developer who must find the bug in a middle algorithm, or as a user when disparate pieces of the application all change together. Race conditions are virtually eliminated and in the rare instance that order needs to be preserved the dispatcher has a ‘waitFor’ method that will ensure correct sequencing of Action Handlers.</p>
 
 <p>How does this all fit together?</p>
 
-<p>The four data paths in the original Flux implementation. When the user fills in a new ToDo item in the input and hits ‘enter’, the Component asks the ToDo Action Creators to make a new Action. The Action Creators do so, and pass a TODO_CREATE action to the Dispatcher. The Dispatcher iterates any stores with a registered dispatch handler, passing the TODO_CREATE action to the handler. The ToDo store’s handler looks for the TODO_CREATE event, updating its internal collection of ToDos. After updating the ToDo store emits a Change event, which the ToDo component listens to. Upon receiving the Update event, the ToDo component rerenders, and the application is in a stable state.</p>
+
+<p><img src="images/flux_8_steps.svg" alt="Basic Flux">
+Fig 5: The four data paths in the original Flux implementation. When the user fills in a new ToDo item in the input and hits ‘enter’, the Component asks the ToDo Action Creators to make a new Action. The Action Creators do so, and pass a TODO_CREATE action to the Dispatcher. The Dispatcher iterates any stores with a registered dispatch handler, passing the TODO_CREATE action to the handler. The ToDo store’s handler looks for the TODO_CREATE event, updating its internal collection of ToDos. After updating the ToDo store emits a Change event, which the ToDo component listens to. Upon receiving the Update event, the ToDo component rerenders, and the application is in a stable state.</p>
 
 <h1>
 <a id="song-flux" class="anchor" href="#song-flux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Song Flux</h1>
@@ -94,23 +96,7 @@ Fig 4: Flux data flow in a complex application. (The dispatcher is a singleton.)
 
 <p>Trkstr is a music player. In this stripped code from the application, a PlayAction is dispatched whenever the music player should start playing a new track. Specifically, a Library component will create and dispatch a PlayAction when a user clicks on a track in an album listing. The PlayAction has a reference to which track to play, and a reference to a dispatcher keyed to the <code>trkstr</code> module, the root module for the entire application. It has a utility method to quickly dispatch itself on that dispatcher.</p>
 
-<div class="highlight highlight-javascript"><pre>angular.module(<span class="pl-s1"><span class="pl-pds">'</span>trkstr.player.actions<span class="pl-pds">'</span></span>, [
-  <span class="pl-s1"><span class="pl-pds">'</span>songFlux<span class="pl-pds">'</span></span>
-]).factory(<span class="pl-s1"><span class="pl-pds">'</span>PlayerActions<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>(<span class="pl-vpf">songFactory</span>){
-  <span class="pl-st">function</span> <span class="pl-en">PlayAction</span>(<span class="pl-vpf">track</span>){
-    <span class="pl-v">this</span>.track <span class="pl-k">=</span> track;
-    <span class="pl-v">this</span>.purpose <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>Request a track be played.<span class="pl-pds">'</span></span>;
-    <span class="pl-v">this</span>.dispatcher <span class="pl-k">=</span> songFactory.getDispatcher(<span class="pl-s1"><span class="pl-pds">'</span>trkstr<span class="pl-pds">'</span></span>);
-  }
-
-  <span class="pl-s3">PlayAction</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">dispatch</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(){
-    <span class="pl-v">this</span>.dispatcher.dispatch(<span class="pl-v">this</span>);
-  };
-
-  <span class="pl-k">return</span> {
-    Play<span class="pl-k">:</span> PlayAction
-  };
-});</pre></div>
+<script src="https://gist.github.com/DavidSouther/caeb675c5e9efcaf94ae.js?file=Actions.js"></script>
 
 <h2>
 <a id="2-stores-register-for-dispatch" class="anchor" href="#2-stores-register-for-dispatch" aria-hidden="true"><span class="octicon octicon-link"></span></a>2. Stores register for dispatch</h2>
@@ -120,107 +106,27 @@ Fig 4: Flux data flow in a complex application. (The dispatcher is a singleton.)
 
 <p>The PlayerStore is a data source to manage the currently playing track, or "Nothing Playing..." if everything has been stopped. The PlayerStore extends prototypically from a global <code>EventEmitter</code> ptototype, has a reference to the <code>'trkstr'</code> dispatcher, and manages a set of events to notify listeners when the store's data mutates. The store registers to any PlayActions that are emitted, passing them to the <code>play</code> method on its prototype. The <code>play</code> method simply updates the current track and fires the event.</p>
 
-<div class="highlight highlight-javascript"><pre><span class="pl-en">PlayerFactory</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(<span class="pl-vpf">Actions</span>, <span class="pl-vpf">song</span>) {
-  <span class="pl-st">function</span> <span class="pl-en">PlayerStore</span>() {
-    <span class="pl-sv">global</span>.EventEmitter.<span class="pl-s3">call</span>(<span class="pl-v">this</span>);
-    <span class="pl-v">this</span>.dispatcher <span class="pl-k">=</span> song.getDispatcher(<span class="pl-s1"><span class="pl-pds">'</span>trkstr<span class="pl-pds">'</span></span>);
-    <span class="pl-v">this</span>.Events <span class="pl-k">=</span> PlayerStore.Events;
-
-    <span class="pl-v">this</span>.currentTrack <span class="pl-k">=</span> { title<span class="pl-k">:</span> <span class="pl-s1"><span class="pl-pds">"</span>Nothing Playing...<span class="pl-pds">"</span></span> };
-    <span class="pl-v">this</span>.doPlay <span class="pl-k">=</span> <span class="pl-v">this</span>.dispatcher.register(Actions.Play, <span class="pl-v">this</span>.play.bind(<span class="pl-v">this</span>));
-  }
-  <span class="pl-s3">PlayerStore</span>.<span class="pl-sc">prototype</span> <span class="pl-k">=</span> <span class="pl-s3">Object</span>.create(EventEmitter.<span class="pl-sc">prototype</span>);
-
-  <span class="pl-s3">PlayerStore</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">play</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(<span class="pl-vpf">playAction</span>) {
-    <span class="pl-v">this</span>.currentTrack <span class="pl-k">=</span> playAction.track;
-    <span class="pl-v">this</span>.emit(PlayerStore.Events.TrackChanged);
-  };
-
-  PlayerStore.Events <span class="pl-k">=</span> {
-    TrackChanged<span class="pl-k">:</span> <span class="pl-s1"><span class="pl-pds">'</span>TrackChanged<span class="pl-pds">'</span></span>
-  };
-
-  <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-en">PlayerStore</span>();
-};
-
-PlayerFactory.$inject <span class="pl-k">=</span> [ <span class="pl-s1"><span class="pl-pds">'</span>TrkstrActions<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>songFactory<span class="pl-pds">'</span></span> ];
-angular.module(<span class="pl-s1"><span class="pl-pds">'</span>trkstr.stores.player<span class="pl-pds">'</span></span>, [
-  <span class="pl-s1"><span class="pl-pds">'</span>trkstr.actions<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>songFlux<span class="pl-pds">'</span></span>
-]).factory(<span class="pl-s1"><span class="pl-pds">'</span>PlayerStore<span class="pl-pds">'</span></span>, PlayerFactory);</pre></div>
+<script src="https://gist.github.com/DavidSouther/caeb675c5e9efcaf94ae.js?file=PlayerStore.js"></script>
 
 <h2>
 <a id="4-on-mutation-store-signals-a-change-event-and-component-renders-new-data" class="anchor" href="#4-on-mutation-store-signals-a-change-event-and-component-renders-new-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>4. On mutation, store signals a change event and component renders new data.</h2>
 
 <p>The PlayerComponent is a combination of a traditional Angular Directive, Controller, and Template. The Directive is fairly thin, but uses a Directive Factory pattern. Rather than simply being a function, the Directive is a class with a static method to return new instances as needed. The Directive constructor then sets the typical Directive Definition properties on itself. By convention, the Directive exposes the controller as <code>state</code> to the Template; the component always uses an isolate scope; and the isolate scope properties (none in this example) are attached to the Controller instance. The controller itself watches for the TrackChanged event, where it updates the isolate scope <code>track</code> variable and lets traditional two-way databinding drive the update to the audio's <code>src</code> attribute.</p>
 
-<div class="highlight highlight-javascript"><pre><span class="pl-st">function</span> <span class="pl-en">PlayerController</span>(<span class="pl-vpf">store</span>) {
-  <span class="pl-v">this</span>.store <span class="pl-k">=</span> store;
-  <span class="pl-v">this</span>.store.on(<span class="pl-v">this</span>.store.Events.TrackChanged, <span class="pl-v">this</span>.play.bind(<span class="pl-v">this</span>));
-  <span class="pl-v">this</span>.play();
-}
-
-<span class="pl-s3">PlayerController</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">play</span> <span class="pl-k">=</span> <span class="pl-st">function</span>() {
-  <span class="pl-k">return</span> <span class="pl-v">this</span>.track <span class="pl-k">=</span> <span class="pl-v">this</span>.store.currentTrack;
-};
-
-PlayerController.$inject <span class="pl-k">=</span> [<span class="pl-s1"><span class="pl-pds">'</span>PlayerStore<span class="pl-pds">'</span></span>];
-
-<span class="pl-st">function</span> <span class="pl-en">PlayerDirective</span>() {
-  <span class="pl-v">this</span>.controller <span class="pl-k">=</span> PlayerController;
-  <span class="pl-v">this</span>.templateUrl <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>player<span class="pl-pds">'</span></span>;
-  <span class="pl-v">this</span>.replace <span class="pl-k">=</span> <span class="pl-c1">false</span>;
-  <span class="pl-v">this</span>.restrict <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>E<span class="pl-pds">'</span></span>;
-  <span class="pl-v">this</span>.controllerAs <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>state<span class="pl-pds">'</span></span>;
-  <span class="pl-v">this</span>.bindToController <span class="pl-k">=</span> <span class="pl-c1">true</span>;
-  <span class="pl-v">this</span>.<span class="pl-sc">scope</span> <span class="pl-k">=</span> {};
-}
-
-<span class="pl-s3">PlayerDirective</span>.<span class="pl-en">factory</span> <span class="pl-k">=</span> <span class="pl-st">function</span>() {
-  <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-en">PlayerDirective</span>();
-};
-PlayerDirective.factory.$inject <span class="pl-k">=</span> [];
-
-angular.module(<span class="pl-s1"><span class="pl-pds">'</span>trkstr.player.component<span class="pl-pds">'</span></span>, [
-  <span class="pl-s1"><span class="pl-pds">'</span>trkstr.stores.player<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>player.template<span class="pl-pds">'</span></span>
-]).directive(<span class="pl-s1"><span class="pl-pds">'</span>player<span class="pl-pds">'</span></span>, PlayerDirective);
-</pre></div>
+<script src="https://gist.github.com/DavidSouther/caeb675c5e9efcaf94ae.js?file=PlayerComponent.js"></script>
 
 <p>The template just binds to the current track title and path, letting the HTML5 audio tag do the heavy lifting.</p>
 
-<div class="highlight highlight-html"><pre><span class="pl-c">&lt;!-- PlayerController Template --&gt;</span>
-&lt;<span class="pl-ent">div</span> <span class="pl-e">class</span>=<span class="pl-s1"><span class="pl-pds">"</span>Player<span class="pl-pds">"</span></span>&gt;
-  &lt;<span class="pl-ent">pre</span> <span class="pl-e">class</span>=<span class="pl-s1"><span class="pl-pds">"</span>title<span class="pl-pds">"</span></span>&gt;playing {{ state.track.title }}&lt;/<span class="pl-ent">pre</span>&gt;
-  &lt;<span class="pl-ent">audio</span>
-    <span class="pl-e">ng-if</span>=<span class="pl-s1"><span class="pl-pds">"</span>state.track.path<span class="pl-pds">"</span></span>
-    <span class="pl-e">autoplay</span> <span class="pl-e">controls</span>
-    <span class="pl-e">ng-src</span>=<span class="pl-s1"><span class="pl-pds">"</span>{{ state.track.path }}<span class="pl-pds">"</span></span>
-  /&gt;
-&lt;/<span class="pl-ent">div</span>&gt;</pre></div>
+<script src="https://gist.github.com/DavidSouther/caeb675c5e9efcaf94ae.js?file=PlayerTemplate.js"></script>
 
 <h2>
 <a id="5-on-user-interaction-component-sends-a-new-action-to-dispatcher" class="anchor" href="#5-on-user-interaction-component-sends-a-new-action-to-dispatcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>5. On user interaction, component sends a new Action to dispatcher.</h2>
 
 <p>This excerpt from the Library Component manages a list of Albums and their tracks. The Library manages a collection of albums and their track listings. The template iterates those listings, and when a user clicks a track the <code>ng-click</code> binding executes the Controller's <code>play</code> action inside a $scope.$digest. The <code>play</code> method creates a new PlayAction with the track and dispatches. The dispatcher sends it to the handler registered at <code>PlayStore.prototype.play</code>. The PlayStore triggers a <code>TrackChanged</code> event. The <code>Player</code> Component sees the new track. The $digest is still in progress, so it updates the new (primitive string) value. The Dispatch backs out, the $digest settles, and the Audio tag begins playing the new track.</p>
 
-<div class="highlight highlight-javascript"><pre><span class="pl-st">function</span> <span class="pl-en">LibraryController</span>(<span class="pl-vpf">Library</span>, <span class="pl-vpf">Actions</span>) {
-  <span class="pl-v">this</span>.Library <span class="pl-k">=</span> Library; <span class="pl-c">// A library has albums, which have tracks</span>
-  <span class="pl-v">this</span>.albums <span class="pl-k">=</span> Library.albums; <span class="pl-c">// Updates on Library mutation events</span>
-  <span class="pl-v">this</span>.Actions <span class="pl-k">=</span> Actions;
-}
+<script src="https://gist.github.com/DavidSouther/caeb675c5e9efcaf94ae.js?file=LibraryComponent.js"></script>
 
-<span class="pl-s3">LibraryController</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">play</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(<span class="pl-vpf">track</span>) {
-  <span class="pl-k">return</span> <span class="pl-v">this</span>.Actions.Play(track).dispatch();
-};
-
-LibraryController.$inject <span class="pl-k">=</span> [<span class="pl-s1"><span class="pl-pds">'</span>TrkstrLibrary<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>TrkstrActions<span class="pl-pds">'</span></span>];</pre></div>
-
-<div class="highlight highlight-html"><pre>&lt;<span class="pl-ent">ol</span> <span class="pl-e">ng-repeat</span>=<span class="pl-s1"><span class="pl-pds">"</span>album in state.albums<span class="pl-pds">"</span></span>&gt;
-  &lt;<span class="pl-ent">li</span>&gt;{{ album.name }}&lt;/<span class="pl-ent">li</span>&gt;
-  &lt;<span class="pl-ent">li</span>
-    <span class="pl-e">ng-repeat</span>=<span class="pl-s1"><span class="pl-pds">"</span>track in album.tracks<span class="pl-pds">"</span></span>
-    <span class="pl-e">ng-click</span>=<span class="pl-s1"><span class="pl-pds">"</span>state.play(track)<span class="pl-pds">"</span></span>
-  &gt;{{ track.title }}&lt;/<span class="pl-ent">li</span>&gt;
-&lt;/<span class="pl-ent">ol</span>&gt;</pre></div>
+<script src="https://gist.github.com/DavidSouther/caeb675c5e9efcaf94ae.js?file=LibraryTemplate.js"></script>
 
 <h1>
 <a id="architecture-explained" class="anchor" href="#architecture-explained" aria-hidden="true"><span class="octicon octicon-link"></span></a>Architecture Explained</h1>
@@ -289,6 +195,6 @@ LibraryController.$inject <span class="pl-k">=</span> [<span class="pl-s1"><span
       </footer>
     </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-    
+
   </body>
 </html>
