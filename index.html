@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Song flux theory by DavidSouther</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <header>
+        <h1>Song flux theory</h1>
+        <p>Elegantly Fluxing the Angular Way</p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/DavidSouther/song-flux-theory" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/DavidSouther/song-flux-theory/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/DavidSouther/song-flux-theory/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
+      <section>
+        <h1>
+<a id="what-is-flux" class="anchor" href="#what-is-flux" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is Flux?</h1>
+
+<p>Flux is an approach to building large GUI applications. Characterized by enforcing a single data flow, flux guarantees certain behaviors and patterns when data moves through an application. These guarantees make it easier to reason about code, making applications and their modules more reliable, composable, and scalable. With better reasoning also come techniques and tools to highlight and exorcise bugs. Application data only moves in four well defined locations, and only mutates in a single place. The potential for side effects, and time spent hunting bugs, is drastically reduced compared to similar MVC designs. We will show all these benefits in this post.</p>
+
+<p>The prevalent MVC architecture diagram component has three objects and six interactions (Fig 1), but as applications scale, the clean linear data flow grows and becomes cluttered (Fig 2).</p>
+
+<p><img src="https://docs.google.com/drawings/d/1z90YL-L6U9NYFeHWe9xlCQE6YDU8e2A6gEqZk7TXbDs/edit" alt="MVC Triangle">
+Fig 1: Typical “MVC” triangle. Models notify Controllers and Views with Observable events. Controllers change views and states as desired. Views can ask for state at any time, and push user actions to controllers. Angular simplifies and obfuscates with two-way binding.</p>
+
+<p><img src="https://docs.google.com/drawings/d/1kd7rKLhPmDlk7e1Y-KCb-QntJHtmMlspETud-tefFWQ/edit" alt="MVC Matured">
+Fig 2: Typical “Data Binding” mishmash in MVVM, arising from loose application architecture and planning. Notice every arrow is two-way.</p>
+
+<p>Flux eschews the free-for-all two-way data binding in favor of certain well-defined push mechanisms. In flux, there are four parts to the pattern, each with one incoming and one outgoing data path, for a total of four interactions (fig 3). The pieces are Actions, objects that encapsulate a requested change in state; the Dispatcher, a utility that manages the data flow; Stores, containers and single sources of truth for application data; and Components, reusable and composable UI elements that make the view. In a complex application, the data flow goes from a graph with high cut size  to a graph with a very low cut size (fig 4) - any piece can be replaced with a few number of refactorings.</p>
+
+<p><img src="https://docs.google.com/drawings/d/1U9gS0myUN1SROWRbzWBIwGjrEtPe7D3mDQN96LZP00I/edit" alt="Basic Flux">
+Fig 3: Basic Flux data flow. Dispatchers call Stores with Actions. Components observe stores, and create Actions. Data flows one direction, and one arrow may be active at a time (no new actions while mutating).</p>
+
+<p><img src="https://docs.google.com/drawings/d/1juuPL4vN7hyxrFYRblHC8mRuP9FyU2-XSe0-MvGj1Z8/edit" alt="Flux Matured">
+Fig 4: Flux data flow in a complex application. (The dispatcher is a singleton.)</p>
+
+<p>Further, flux enforces low cyclomatic complexity on the data flow graph: when the Dispatcher component handles an Action, the dispatcher guarantees no other Actions are simultaneously being dispatched. This eliminates a "mutation cascade", where a user action triggers some state to mutate, that itself causes some other state to mutate. These cascades can be very difficult to reason about both as a developer who must find the bug in a middle algorithm, or as a user when disparate pieces of the application all change together. Race conditions are virtually eliminated and in the rare instance that order needs to be preserved the dispatcher has a ‘waitFor’ method that will ensure correct sequencing of Action Handlers.</p>
+
+<p>How does this all fit together?</p>
+
+<p>The four data paths in the original Flux implementation. When the user fills in a new ToDo item in the input and hits ‘enter’, the Component asks the ToDo Action Creators to make a new Action. The Action Creators do so, and pass a TODO_CREATE action to the Dispatcher. The Dispatcher iterates any stores with a registered dispatch handler, passing the TODO_CREATE action to the handler. The ToDo store’s handler looks for the TODO_CREATE event, updating its internal collection of ToDos. After updating the ToDo store emits a Change event, which the ToDo component listens to. Upon receiving the Update event, the ToDo component rerenders, and the application is in a stable state.</p>
+
+<h1>
+<a id="song-flux" class="anchor" href="#song-flux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Song Flux</h1>
+
+<h2>
+<a id="multiplex-by-actionconstructor" class="anchor" href="#multiplex-by-actionconstructor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multiplex by ActionConstructor</h2>
+
+<p>Song Flux provides the Dispatcher component of the Flux architecture, with some modifications. In the original Flux implementation, Actions were a tuple of <code>(const string action, object data)</code>. In Song Flux, Actions are instances of Javascript Constructor Functions; that is, every type of Action is a function, which will be instantiated with the <code>new</code> operator when created by a component. Stores register not for all dispatched actions, but individually for each type of action the store is interested in receiving. This approach greatly reduces boilerplate overhead of setting up Flux data flows, and does not reduce flexibility or power of the approach.</p>
+
+<h2>
+<a id="mostly-unidirectional-data-flow" class="anchor" href="#mostly-unidirectional-data-flow" aria-hidden="true"><span class="octicon octicon-link"></span></a>(Mostly) Unidirectional Data Flow</h2>
+
+<p>Like the original Flux implementation, Song Flux only enforces single action at a time in the Dispatcher. Actions are always dispatched within a $digest loop, either triggered by user action on eg an <code>ng-click</code> handler, or as the result of some asynchronous callback eg a $http return. The dispatcher verifies that within an action dispatch, and within a $digest loop, only a single Action is generated. By preventing multiple actions per $digest, the uncommon but frustrating situation of a “mutation cascade”, which can often result in the dreaded $infDigest error.</p>
+
+<p>Song Flux does encourage “traditional” Angular MVVM architecture within reusable components of a web application. The benefits of two-way data binding have demonstrated themselves time and again in the Angular ecosystem. The failing is only when it comes to scaling an application beyond a couple interacting data sources and views.</p>
+
+<h2>
+<a id="single-actions-object-with-all-actions-for-segments" class="anchor" href="#single-actions-object-with-all-actions-for-segments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Single Actions object with all Actions for segments</h2>
+
+<p>To consume Actions, the Action constructors must be injected into Stores for registering and Components to instantiate and dispatch. Actions can be created and injected individually. In practice, it was found to be much simple to combine all Action constructors for a part of the application (generally at the Store module level) into a single injectable <code>Actions</code> object, with each constructor hanging off that.</p>
+
+<h1>
+<a id="song-flux-example" class="anchor" href="#song-flux-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Song Flux Example</h1>
+
+<h2>
+<a id="1-create-action-constructors" class="anchor" href="#1-create-action-constructors" aria-hidden="true"><span class="octicon octicon-link"></span></a>1. Create Action Constructors</h2>
+
+<p>Trkstr is a music player. In this stripped code from the application, a PlayAction is dispatched whenever the music player should start playing a new track. Specifically, a Library component will create and dispatch a PlayAction when a user clicks on a track in an album listing. The PlayAction has a reference to which track to play, and a reference to a dispatcher keyed to the <code>trkstr</code> module, the root module for the entire application. It has a utility method to quickly dispatch itself on that dispatcher.</p>
+
+<div class="highlight highlight-javascript"><pre>angular.module(<span class="pl-s1"><span class="pl-pds">'</span>trkstr.player.actions<span class="pl-pds">'</span></span>, [
+  <span class="pl-s1"><span class="pl-pds">'</span>songFlux<span class="pl-pds">'</span></span>
+]).factory(<span class="pl-s1"><span class="pl-pds">'</span>PlayerActions<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>(<span class="pl-vpf">songFactory</span>){
+  <span class="pl-st">function</span> <span class="pl-en">PlayAction</span>(<span class="pl-vpf">track</span>){
+    <span class="pl-v">this</span>.track <span class="pl-k">=</span> track;
+    <span class="pl-v">this</span>.purpose <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>Request a track be played.<span class="pl-pds">'</span></span>;
+    <span class="pl-v">this</span>.dispatcher <span class="pl-k">=</span> songFactory.getDispatcher(<span class="pl-s1"><span class="pl-pds">'</span>trkstr<span class="pl-pds">'</span></span>);
+  }
+
+  <span class="pl-s3">PlayAction</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">dispatch</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(){
+    <span class="pl-v">this</span>.dispatcher.dispatch(<span class="pl-v">this</span>);
+  };
+
+  <span class="pl-k">return</span> {
+    Play<span class="pl-k">:</span> PlayAction
+  };
+});</pre></div>
+
+<h2>
+<a id="2-stores-register-for-dispatch" class="anchor" href="#2-stores-register-for-dispatch" aria-hidden="true"><span class="octicon octicon-link"></span></a>2. Stores register for dispatch</h2>
+
+<h2>
+<a id="3-on-dispatch-stores-mutate-single-source-of-data" class="anchor" href="#3-on-dispatch-stores-mutate-single-source-of-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>3. On dispatch, stores mutate single source of data.</h2>
+
+<p>The PlayerStore is a data source to manage the currently playing track, or "Nothing Playing..." if everything has been stopped. The PlayerStore extends prototypically from a global <code>EventEmitter</code> ptototype, has a reference to the <code>'trkstr'</code> dispatcher, and manages a set of events to notify listeners when the store's data mutates. The store registers to any PlayActions that are emitted, passing them to the <code>play</code> method on its prototype. The <code>play</code> method simply updates the current track and fires the event.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-en">PlayerFactory</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(<span class="pl-vpf">Actions</span>, <span class="pl-vpf">song</span>) {
+  <span class="pl-st">function</span> <span class="pl-en">PlayerStore</span>() {
+    <span class="pl-sv">global</span>.EventEmitter.<span class="pl-s3">call</span>(<span class="pl-v">this</span>);
+    <span class="pl-v">this</span>.dispatcher <span class="pl-k">=</span> song.getDispatcher(<span class="pl-s1"><span class="pl-pds">'</span>trkstr<span class="pl-pds">'</span></span>);
+    <span class="pl-v">this</span>.Events <span class="pl-k">=</span> PlayerStore.Events;
+
+    <span class="pl-v">this</span>.currentTrack <span class="pl-k">=</span> { title<span class="pl-k">:</span> <span class="pl-s1"><span class="pl-pds">"</span>Nothing Playing...<span class="pl-pds">"</span></span> };
+    <span class="pl-v">this</span>.doPlay <span class="pl-k">=</span> <span class="pl-v">this</span>.dispatcher.register(Actions.Play, <span class="pl-v">this</span>.play.bind(<span class="pl-v">this</span>));
+  }
+  <span class="pl-s3">PlayerStore</span>.<span class="pl-sc">prototype</span> <span class="pl-k">=</span> <span class="pl-s3">Object</span>.create(EventEmitter.<span class="pl-sc">prototype</span>);
+
+  <span class="pl-s3">PlayerStore</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">play</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(<span class="pl-vpf">playAction</span>) {
+    <span class="pl-v">this</span>.currentTrack <span class="pl-k">=</span> playAction.track;
+    <span class="pl-v">this</span>.emit(PlayerStore.Events.TrackChanged);
+  };
+
+  PlayerStore.Events <span class="pl-k">=</span> {
+    TrackChanged<span class="pl-k">:</span> <span class="pl-s1"><span class="pl-pds">'</span>TrackChanged<span class="pl-pds">'</span></span>
+  };
+
+  <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-en">PlayerStore</span>();
+};
+
+PlayerFactory.$inject <span class="pl-k">=</span> [ <span class="pl-s1"><span class="pl-pds">'</span>TrkstrActions<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>songFactory<span class="pl-pds">'</span></span> ];
+angular.module(<span class="pl-s1"><span class="pl-pds">'</span>trkstr.stores.player<span class="pl-pds">'</span></span>, [
+  <span class="pl-s1"><span class="pl-pds">'</span>trkstr.actions<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>songFlux<span class="pl-pds">'</span></span>
+]).factory(<span class="pl-s1"><span class="pl-pds">'</span>PlayerStore<span class="pl-pds">'</span></span>, PlayerFactory);</pre></div>
+
+<h2>
+<a id="4-on-mutation-store-signals-a-change-event-and-component-renders-new-data" class="anchor" href="#4-on-mutation-store-signals-a-change-event-and-component-renders-new-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>4. On mutation, store signals a change event and component renders new data.</h2>
+
+<p>The PlayerComponent is a combination of a traditional Angular Directive, Controller, and Template. The Directive is fairly thin, but uses a Directive Factory pattern. Rather than simply being a function, the Directive is a class with a static method to return new instances as needed. The Directive constructor then sets the typical Directive Definition properties on itself. By convention, the Directive exposes the controller as <code>state</code> to the Template; the component always uses an isolate scope; and the isolate scope properties (none in this example) are attached to the Controller instance. The controller itself watches for the TrackChanged event, where it updates the isolate scope <code>track</code> variable and lets traditional two-way databinding drive the update to the audio's <code>src</code> attribute.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-st">function</span> <span class="pl-en">PlayerController</span>(<span class="pl-vpf">store</span>) {
+  <span class="pl-v">this</span>.store <span class="pl-k">=</span> store;
+  <span class="pl-v">this</span>.store.on(<span class="pl-v">this</span>.store.Events.TrackChanged, <span class="pl-v">this</span>.play.bind(<span class="pl-v">this</span>));
+  <span class="pl-v">this</span>.play();
+}
+
+<span class="pl-s3">PlayerController</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">play</span> <span class="pl-k">=</span> <span class="pl-st">function</span>() {
+  <span class="pl-k">return</span> <span class="pl-v">this</span>.track <span class="pl-k">=</span> <span class="pl-v">this</span>.store.currentTrack;
+};
+
+PlayerController.$inject <span class="pl-k">=</span> [<span class="pl-s1"><span class="pl-pds">'</span>PlayerStore<span class="pl-pds">'</span></span>];
+
+<span class="pl-st">function</span> <span class="pl-en">PlayerDirective</span>() {
+  <span class="pl-v">this</span>.controller <span class="pl-k">=</span> PlayerController;
+  <span class="pl-v">this</span>.templateUrl <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>player<span class="pl-pds">'</span></span>;
+  <span class="pl-v">this</span>.replace <span class="pl-k">=</span> <span class="pl-c1">false</span>;
+  <span class="pl-v">this</span>.restrict <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>E<span class="pl-pds">'</span></span>;
+  <span class="pl-v">this</span>.controllerAs <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>state<span class="pl-pds">'</span></span>;
+  <span class="pl-v">this</span>.bindToController <span class="pl-k">=</span> <span class="pl-c1">true</span>;
+  <span class="pl-v">this</span>.<span class="pl-sc">scope</span> <span class="pl-k">=</span> {};
+}
+
+<span class="pl-s3">PlayerDirective</span>.<span class="pl-en">factory</span> <span class="pl-k">=</span> <span class="pl-st">function</span>() {
+  <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-en">PlayerDirective</span>();
+};
+PlayerDirective.factory.$inject <span class="pl-k">=</span> [];
+
+angular.module(<span class="pl-s1"><span class="pl-pds">'</span>trkstr.player.component<span class="pl-pds">'</span></span>, [
+  <span class="pl-s1"><span class="pl-pds">'</span>trkstr.stores.player<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>player.template<span class="pl-pds">'</span></span>
+]).directive(<span class="pl-s1"><span class="pl-pds">'</span>player<span class="pl-pds">'</span></span>, PlayerDirective);
+</pre></div>
+
+<p>The template just binds to the current track title and path, letting the HTML5 audio tag do the heavy lifting.</p>
+
+<div class="highlight highlight-html"><pre><span class="pl-c">&lt;!-- PlayerController Template --&gt;</span>
+&lt;<span class="pl-ent">div</span> <span class="pl-e">class</span>=<span class="pl-s1"><span class="pl-pds">"</span>Player<span class="pl-pds">"</span></span>&gt;
+  &lt;<span class="pl-ent">pre</span> <span class="pl-e">class</span>=<span class="pl-s1"><span class="pl-pds">"</span>title<span class="pl-pds">"</span></span>&gt;playing {{ state.track.title }}&lt;/<span class="pl-ent">pre</span>&gt;
+  &lt;<span class="pl-ent">audio</span>
+    <span class="pl-e">ng-if</span>=<span class="pl-s1"><span class="pl-pds">"</span>state.track.path<span class="pl-pds">"</span></span>
+    <span class="pl-e">autoplay</span> <span class="pl-e">controls</span>
+    <span class="pl-e">ng-src</span>=<span class="pl-s1"><span class="pl-pds">"</span>{{ state.track.path }}<span class="pl-pds">"</span></span>
+  /&gt;
+&lt;/<span class="pl-ent">div</span>&gt;</pre></div>
+
+<h2>
+<a id="5-on-user-interaction-component-sends-a-new-action-to-dispatcher" class="anchor" href="#5-on-user-interaction-component-sends-a-new-action-to-dispatcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>5. On user interaction, component sends a new Action to dispatcher.</h2>
+
+<p>This excerpt from the Library Component manages a list of Albums and their tracks. The Library manages a collection of albums and their track listings. The template iterates those listings, and when a user clicks a track the <code>ng-click</code> binding executes the Controller's <code>play</code> action inside a $scope.$digest. The <code>play</code> method creates a new PlayAction with the track and dispatches. The dispatcher sends it to the handler registered at <code>PlayStore.prototype.play</code>. The PlayStore triggers a <code>TrackChanged</code> event. The <code>Player</code> Component sees the new track. The $digest is still in progress, so it updates the new (primitive string) value. The Dispatch backs out, the $digest settles, and the Audio tag begins playing the new track.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-st">function</span> <span class="pl-en">LibraryController</span>(<span class="pl-vpf">Library</span>, <span class="pl-vpf">Actions</span>) {
+  <span class="pl-v">this</span>.Library <span class="pl-k">=</span> Library; <span class="pl-c">// A library has albums, which have tracks</span>
+  <span class="pl-v">this</span>.albums <span class="pl-k">=</span> Library.albums; <span class="pl-c">// Updates on Library mutation events</span>
+  <span class="pl-v">this</span>.Actions <span class="pl-k">=</span> Actions;
+}
+
+<span class="pl-s3">LibraryController</span>.<span class="pl-sc">prototype</span>.<span class="pl-en">play</span> <span class="pl-k">=</span> <span class="pl-st">function</span>(<span class="pl-vpf">track</span>) {
+  <span class="pl-k">return</span> <span class="pl-v">this</span>.Actions.Play(track).dispatch();
+};
+
+LibraryController.$inject <span class="pl-k">=</span> [<span class="pl-s1"><span class="pl-pds">'</span>TrkstrLibrary<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>TrkstrActions<span class="pl-pds">'</span></span>];</pre></div>
+
+<div class="highlight highlight-html"><pre>&lt;<span class="pl-ent">ol</span> <span class="pl-e">ng-repeat</span>=<span class="pl-s1"><span class="pl-pds">"</span>album in state.albums<span class="pl-pds">"</span></span>&gt;
+  &lt;<span class="pl-ent">li</span>&gt;{{ album.name }}&lt;/<span class="pl-ent">li</span>&gt;
+  &lt;<span class="pl-ent">li</span>
+    <span class="pl-e">ng-repeat</span>=<span class="pl-s1"><span class="pl-pds">"</span>track in album.tracks<span class="pl-pds">"</span></span>
+    <span class="pl-e">ng-click</span>=<span class="pl-s1"><span class="pl-pds">"</span>state.play(track)<span class="pl-pds">"</span></span>
+  &gt;{{ track.title }}&lt;/<span class="pl-ent">li</span>&gt;
+&lt;/<span class="pl-ent">ol</span>&gt;</pre></div>
+
+<h1>
+<a id="architecture-explained" class="anchor" href="#architecture-explained" aria-hidden="true"><span class="octicon octicon-link"></span></a>Architecture Explained</h1>
+
+<p>Angular developers should be familiar with the common “injectable concepts” - <code>services</code>, <code>factories</code>, <code>filters</code>, <code>directives</code>, etc. Song flux introduces three new concepts, as well as the Song Factory for creating dispatchers per module. The three new concepts are <code>stores</code>, an extension of factories; <code>components</code>, a combined <code>directive</code>, <code>controller</code>, and <code>template</code>; and <code>actions</code>, instantiable functions representing Flux actions.</p>
+
+<h2>
+<a id="store---single-source-of-truth" class="anchor" href="#store---single-source-of-truth" aria-hidden="true"><span class="octicon octicon-link"></span></a>Store - single source of truth.</h2>
+
+<p>A Store is an extension on top of ServiFactoProviders. Stores are expected to be the single source of truth for a particular bit of data in an application. Stores are the only code that registers to receive dispatched events. Stores can expose their registration hooks, to allow Stores to explicitly declare asynchronous</p>
+
+<h2>
+<a id="component---read-only-reference-to-ssot--internal-view-logic" class="anchor" href="#component---read-only-reference-to-ssot--internal-view-logic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Component - read-only reference to ssot + internal view logic.</h2>
+
+<p>A Component is a combination of a Directive, a Controller, and a Template. Components themselves follow the data-bound MVC approach very closely, but do so in isolation. The Directive exposes the Component in HTML; the Controller listens for events from the Stores the component is interested in, and the Template provides the HTML for the view. Song Flux recommends that Component Directives always use isolate scopes in conjunction with bindToController, and always set <code>controllerAs</code> to <code>state</code>. Controllers should be instantiable functions, should have Actions and Stores injected, and should listen to Store mutation events to update internal data. Templates should only include local binding and data, isolating dependence on other components through known properties exposed by the controller. User interaction should have templates call controller methods, which create and dispatch Actions.</p>
+
+<h2>
+<a id="action---encapsulate-a-request-to-change-state" class="anchor" href="#action---encapsulate-a-request-to-change-state" aria-hidden="true"><span class="octicon octicon-link"></span></a>Action - encapsulate a request to change state.</h2>
+
+<p>An Action is an object that represents a request to change application state. In traditional MVC a user action would trigger a method on a controller, which directly updates state in the model. Flux decouples this interaction. While the vast majority of time a dispatched action will go directly to some store and result in updated state, Flux decouples these to allow for creating more complex interaction flows. In the canonical examples, this is used when a store calculates meta data, but wants to guarantee the store handling the data itself has a chance to update the base data list. In Song Flux, Actions are instantiable function constructors. This allows the Action Constructor itself to be used as a key for registering and dispatching, rather than relying on pattern matching strings.</p>
+
+<h2>
+<a id="dispatcher---utilities-etc" class="anchor" href="#dispatcher---utilities-etc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dispatcher - utilities, etc.</h2>
+
+<p>The dispatcher and other utilities are provided by Song Flux, and have APIs similar to their Facebook counterparts.</p>
+
+<h1>
+<a id="benefits" class="anchor" href="#benefits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Benefits</h1>
+
+<h2>
+<a id="bugs-are-obvious" class="anchor" href="#bugs-are-obvious" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bugs are obvious</h2>
+
+<p>Bugs now live in one of two places: business algorithms, flux application wiring. When debugging and testing, all data is immediately local, and numerous common issues can be detected by the library at runtime (dispatching incorrect events, tying to the wrong module namespace).</p>
+
+<h2>
+<a id="testing-super-isolated-supermockable-examples" class="anchor" href="#testing-super-isolated-supermockable-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing: super isolated, supermockable (examples)</h2>
+
+<p>Because each section of code relies only on a single object with a well-known type signature or shape, any piece of the application can be pulled out and replaced with a mock, stub, or spy. Components can be given a piece of mock data, rendered, and have their DOM inspected independent of the implementation of the data store.</p>
+
+<h2>
+<a id="highly-decoupled-see-above" class="anchor" href="#highly-decoupled-see-above" aria-hidden="true"><span class="octicon octicon-link"></span></a>Highly decoupled (see above)</h2>
+
+<p>Want to go crazy? Have your AB test selectively change the template and component code. The store doesn't care, and your component only needs to know the given data structure and Actions available.</p>
+
+<h1>
+<a id="cons" class="anchor" href="#cons" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cons</h1>
+
+<h2>
+<a id="trades-complexity--4-things-before-you-see-progress" class="anchor" href="#trades-complexity--4-things-before-you-see-progress" aria-hidden="true"><span class="octicon octicon-link"></span></a>Trades complexity- 4 things before you see progress.</h2>
+
+<p>One huge early draw of Angular JS was (and is) the ease at which anyone with a little HTML knowledge can immediately build rich interactions on the web. As projects scale in codebase, developer contributions, and user base, an enforced architecture grows ever more critical. With an approach like SOng flux, the barrier to entry rises- to see any result on screen, four objects must be instantiated and wired together.</p>
+
+<h2>
+<a id="team-decisions--create-ctor-vs-create-action" class="anchor" href="#team-decisions--create-ctor-vs-create-action" aria-hidden="true"><span class="octicon octicon-link"></span></a>Team decisions- create ctor vs create action</h2>
+
+<p>The architecture is not "complete" - there are many decisions teams must make in what idioms they will use for their project. Do Actions self-dispatch? Does a factory create an action constructor or an action instance? Song Flux does not care which one is used leaving the decision purely to the team and project.</p>
+
+<h2>
+<a id="highly-decoupled" class="anchor" href="#highly-decoupled" aria-hidden="true"><span class="octicon octicon-link"></span></a>Highly decoupled</h2>
+
+<p>Along with the first con, the application becomes massively decoupled. There are in fact more moving parts, even if there are fewer places for the parts to be moving. Within components, UI specific data still flows in the "traditional" angular $digest way.</p>
+      </section>
+      <footer>
+        <p>Project maintained by <a href="https://github.com/DavidSouther">DavidSouther</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
