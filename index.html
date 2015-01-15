@@ -25,13 +25,6 @@
         <span id="logo"></span>
 
         <a href="https://github.com/DavidSouther/song-flux-theory" class="button fork"><strong>View On GitHub</strong></a>
-        <div class="downloads">
-          <span>Downloads:</span>
-          <ul>
-            <li><a href="https://github.com/DavidSouther/song-flux-theory/zipball/master" class="button">ZIP</a></li>
-            <li><a href="https://github.com/DavidSouther/song-flux-theory/tarball/master" class="button">TAR</a></li>
-          </ul>
-        </div>
       </div><!-- end banner -->
 
     <div class="wrapper">
@@ -46,27 +39,54 @@
 
 <p>The prevalent MVC architecture diagram component has three objects and six interactions (Fig 1), but as applications scale, the clean linear data flow grows and becomes cluttered (Fig 2).</p>
 
-<p><img src="images/mvc_triangle.svg" alt="MVC Triangle">
-Fig 1: Typical “MVC” triangle. Models notify Controllers and Views with Observable events. Controllers change views and states as desired. Views can ask for state at any time, and push user actions to controllers. Angular simplifies and obfuscates with two-way binding.</p>
 
-<p><img src="images/mature_angular_mvc.svg" alt="MVC Matured">
+<table>
+  <tbody>
+    <tr>
+      <td width="50%">
+<p><a href="images/mvc_triangle.svg"><img src="images/mvc_triangle.svg" alt="MVC Triangle"></a>
+Fig 1: Typical “MVC” triangle. Models notify Controllers and Views with Observable events. Controllers change views and states as desired. Views can ask for state at any time, and push user actions to controllers. Angular simplifies and obfuscates with two-way binding.</p>
+      </td>
+      <td>
+<p><a href="images/mature_angular_mvc.svg"><img src="images/mature_angular_mvc.svg" alt="MVC Matured"></a>
 Fig 2: Typical “Data Binding” mishmash in MVVM, arising from loose application architecture and planning. Notice every arrow is two-way.</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 <p>Flux eschews the free-for-all two-way data binding in favor of certain well-defined push mechanisms. In flux, there are four parts to the pattern, each with one incoming and one outgoing data path, for a total of four interactions (fig 3). The pieces are Actions, objects that encapsulate a requested change in state; the Dispatcher, a utility that manages the data flow; Stores, containers and single sources of truth for application data; and Components, reusable and composable UI elements that make the view. In a complex application, the data flow goes from a graph with high cut size  to a graph with a very low cut size (fig 4) - any piece can be replaced with a few number of refactorings.</p>
-
-<p><img src="images/basic_flux.svg" alt="Basic Flux">
+<table>
+  <tbody>
+    <tr>
+      <td width="50%">
+<p><a href="images/basic_flux.svg"><img src="images/basic_flux.svg" alt="Basic Flux"></a>
 Fig 3: Basic Flux data flow. Dispatchers call Stores with Actions. Components observe stores, and create Actions. Data flows one direction, and one arrow may be active at a time (no new actions while mutating).</p>
-
-<p><img src="images/flux_large_app.svg" alt="Flux Matured">
+      </td>
+      <td>
+<p><a href="images/flux_large_app.svg"><img src="images/flux_large_app.svg" alt="Flux Matured"></a>
 Fig 4: Flux data flow in a complex application. (The dispatcher is a singleton.)</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 <p>Further, flux enforces low cyclomatic complexity on the data flow graph: when the Dispatcher component handles an Action, the dispatcher guarantees no other Actions are simultaneously being dispatched. This eliminates a "mutation cascade", where a user action triggers some state to mutate, that itself causes some other state to mutate. These cascades can be very difficult to reason about both as a developer who must find the bug in a middle algorithm, or as a user when disparate pieces of the application all change together. Race conditions are virtually eliminated and in the rare instance that order needs to be preserved the dispatcher has a ‘waitFor’ method that will ensure correct sequencing of Action Handlers.</p>
 
 <p>How does this all fit together?</p>
 
-
-<p><img src="images/flux_8_steps.svg" alt="Basic Flux">
-Fig 5: The four data paths in the original Flux implementation. When the user fills in a new ToDo item in the input and hits ‘enter’, the Component asks the ToDo Action Creators to make a new Action. The Action Creators do so, and pass a TODO_CREATE action to the Dispatcher. The Dispatcher iterates any stores with a registered dispatch handler, passing the TODO_CREATE action to the handler. The ToDo store’s handler looks for the TODO_CREATE event, updating its internal collection of ToDos. After updating the ToDo store emits a Change event, which the ToDo component listens to. Upon receiving the Update event, the ToDo component rerenders, and the application is in a stable state.</p>
+<table>
+  <tbody>
+    <tr>
+      <td width="50%">
+        <a href="images/flux_8_steps.svg"><img src="images/flux_8_steps.svg" alt="Basic Flux"></a>
+      </td>
+      <td>
+        <p>Fig 5: The four data paths in the original Flux implementation. When the user fills in a new ToDo item in the input and hits ‘enter’, the Component asks the ToDo Action Creators to make a new Action. The Action Creators do so, and pass a TODO_CREATE action to the Dispatcher. The Dispatcher iterates any stores with a registered dispatch handler, passing the TODO_CREATE action to the handler. The ToDo store’s handler looks for the TODO_CREATE event, updating its internal collection of ToDos. After updating the ToDo store emits a Change event, which the ToDo component listens to. Upon receiving the Update event, the ToDo component rerenders, and the application is in a stable state.</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 <h1>
 <a id="song-flux" class="anchor" href="#song-flux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Song Flux</h1>

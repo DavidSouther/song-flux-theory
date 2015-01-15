@@ -53,5 +53,5 @@ fixScale = function(doc) {
 };
 
 $(document).on("scroll", function(){
-  $("header, #banner")[$(document).scrollTop() > 100 ? "addClass" : "removeClass"]("shrink");
+  $("body")[($(document).scrollTop() > 100 ? "add" : "remove") + "Class"]("shrink");
 });

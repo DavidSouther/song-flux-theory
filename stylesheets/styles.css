@@ -673,7 +673,7 @@ header {
   transition: all 0.4s ease-in-out;
 }
 
-header.shrink {
+body.shrink header {
   padding: 0px;
 }
 
@@ -695,7 +695,7 @@ header p {
   margin: 0px;
 }
 
-header.shrink p {
+body.shrink header p {
   display: none;
 }
 
@@ -726,8 +726,11 @@ header.shrink p {
   transition: all 0.4s ease-in-out;
 }
 
-#banner.shrink {
-  right: 98%;
+body.shrink #banner {
+  right: inherit;
+  margin-right: 0;
+  width: 230px;
+  top: 55px;
 }
 
 #banner .button {
@@ -784,8 +787,9 @@ header.shrink p {
   transition: all 0.4s ease-in-out;
 }
 
-#banner.shrink .fork {
-  left: 23%;
+body.shrink #banner .fork {
+  left: 7px;
+  margin-left: 0px;
 }
 
 #banner .downloads {
@@ -857,7 +861,18 @@ nav {
   text-align: right;
   overflow: auto;
   border-bottom: 1px dashed black;
+
+  -webkit-transition: all 0.4s ease-in-out;
+  -moz-transition: all 0.4s ease-in-out;
+  -o-transition: all 0.4s ease-in-out;
+  transition: all 0.4s ease-in-out;
 }
+
+body.shrink nav {
+  top: 120px;
+  height: 472px;
+}
+
 nav ul {
   list-style: none;
   list-style-image: none;
@@ -895,6 +910,10 @@ footer {
   line-height: 16px;
 }
 
+table p {
+  font-style: italic;
+}
+
 @media print, screen and (max-width: 1060px) {
   div.wrapper {
     width: auto;
@@ -924,6 +943,11 @@ footer {
   }
   #banner #logo {
     margin-right: 15px;
+  }
+
+  body.shrink #banner {
+    height: 0;
+    display: none;
   }
 
   section {
