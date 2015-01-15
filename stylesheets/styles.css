@@ -667,7 +667,16 @@ header {
   z-index: 99;
   -webkit-font-smoothing: antialiased;
   min-height: 76px;
+  -webkit-transition: all 0.4s ease-in-out;
+  -moz-transition: all 0.4s ease-in-out;
+  -o-transition: all 0.4s ease-in-out;
+  transition: all 0.4s ease-in-out;
 }
+
+header.shrink {
+  padding: 0px;
+}
+
 header h1 {
   font: 40px/48px "Copse", "Helvetica Neue", Helvetica, Arial, sans-serif;
   color: #f3f3f3;
@@ -684,6 +693,10 @@ header p {
   text-shadow: rgba(0, 0, 0, 0.2) 0 1px 0;
   font-size: 18px;
   margin: 0px;
+}
+
+header.shrink p {
+  display: none;
 }
 
 #banner {
@@ -707,7 +720,16 @@ header p {
   -khtml-border-radius: 0px 2px 2px 0px;
   border-radius: 0px 2px 2px 0px;
   padding-right: 10px;
+  -webkit-transition: all 0.4s ease-in-out;
+  -moz-transition: all 0.4s ease-in-out;
+  -o-transition: all 0.4s ease-in-out;
+  transition: all 0.4s ease-in-out;
 }
+
+#banner.shrink {
+  right: 98%;
+}
+
 #banner .button {
   border: 1px solid #dba500;
   background: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #ffe788), color-stop(100%, #ffce38));
@@ -755,7 +777,17 @@ header p {
   line-height: 14px;
   font-size: 14px;
   background-color: #FFE788;
+
+  -webkit-transition: all 0.4s ease-in-out;
+  -moz-transition: all 0.4s ease-in-out;
+  -o-transition: all 0.4s ease-in-out;
+  transition: all 0.4s ease-in-out;
 }
+
+#banner.shrink .fork {
+  left: 23%;
+}
+
 #banner .downloads {
   float: right;
   margin: 0 45px 0 0;
